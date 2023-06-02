@@ -1,0 +1,11 @@
+#! /bin/sh
+# {{ ansible_managed }}
+
+{% for item in certbot_services %}
+echo "reloading service {{ item }}"
+systemctl reload-or-restart {{ item }}
+{% endfor %}
+
+{% if cerbot_custom_renew_script is defined %}
+{{ cerbot_custom_renew_script }}
+{% endif %}

@@ -1,0 +1,22 @@
+---
+- name: Install certbot
+  ansible.builtin.include_tasks:
+    file: install.yml
+
+- name: Configure certbot acme account
+  ansible.builtin.include_tasks:
+    file: configure.yml
+
+- name: Create certificates
+  ansible.builtin.include_tasks:
+    file: standard.yml
+  when: certbot_dns_plugin is not defined
+
+- name: Create certificates
+  ansible.builtin.include_tasks:
+    file: standard.yml
+  when: certbot_dns_plugin is defined
+
+- name: Setup renewals
+  ansible.builtin.include_tasks:
+    file: renewal.yml

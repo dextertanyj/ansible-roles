@@ -1,0 +1,14 @@
+---
+- name: Request certificate
+  environment: "{{ {\"REQUESTS_CA_BUNDLE\": certbot_acme_server_ca_cert} if certbot_acme_server_ca_cert is defined else {} }}"
+  become: true
+  ansible.builtin.command:
+    cmd: |
+      certbot certonly
+      --{{ certbot_webserver }}
+      {% if certbot_webserver_options is defined %} {{ certbot_webserver_options }} {% endif %}
+      {% if certbot_acme_server is defined %} --server={{ certbot_acme_server }} -m {{ certbot_admin_email }} --agree-tos {% endif %}
+      -d {{ item }}
+  args:
+    creates: /etc/letsencrypt/live/{{ item | replace("*.", "") }}/cert.pem
+  loop: "{{ certbot_domains }}"

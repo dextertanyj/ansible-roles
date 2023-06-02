@@ -1,0 +1,6 @@
+certbot_admin_email: email@example.com
+certbot_webserver: standalone
+
+certbot_domains: []
+
+certbot_services: []

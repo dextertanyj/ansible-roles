@@ -1,0 +1,38 @@
+---
+- name: Install cron
+  become: true
+  ansible.builtin.apt:
+    name: cron
+    state: present
+
+- name: Install cron job
+  become: true
+  ansible.builtin.cron:
+    name: Renew certificates
+    hour: "*/3"
+    minute: "0"
+    job: "
+        {% if certbot_acme_server_ca_cert is defined %} REQUESTS_CA_BUNDLE={{ certbot_acme_server_ca_cert }} {% endif %} \
+        certbot renew --no-self-upgrade \
+        {% if certbot_acme_server is defined %} --server={{ certbot_acme_server }} {% endif %}
+      "
+    user: root
+
+- name: Install deploy hook
+  become: true
+  ansible.builtin.template:
+    src: reload.j2
+    dest: /etc/letsencrypt/renewal-hooks/deploy/reload
+    owner: root
+    group: root
+    mode: 0750
+
+- name: Configure certificate renewal window
+  become: true
+  ansible.builtin.lineinfile:
+    name: "/etc/letsencrypt/renewal/{{ item | replace(\"*.\", \"\") }}.conf"
+    regex: "^(# )?renew_before_expiry"
+    line: "renew_before_expiry = {{ certbot_renewal_window }}"
+    state: present
+  when: certbot_renewal_window is defined
+  loop: "{{ certbot_domains }}"

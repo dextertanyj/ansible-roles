@@ -1,0 +1,13 @@
+- name: Check existing ACME account
+  become: true
+  ansible.builtin.command:
+    cmd: certbot show_account
+  changed_when: false
+  failed_when: false
+  register: acme_account
+
+- name: Setup ACME account
+  become: true
+  ansible.builtin.command:
+    cmd: certbot register -m {{ certbot_admin_email }} --agree-tos
+  when: acme_account is search("Could not find an existing account for server")

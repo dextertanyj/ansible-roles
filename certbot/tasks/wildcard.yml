@@ -1,0 +1,38 @@
+---
+- name: Verify plugin containment level
+  become: true
+  ansible.builtin.command:
+    cmd: snap get certbot trust-plugin-with-root
+  changed_when: false
+  failed_when: false
+  register: plugin_containment_level
+
+- name: Configure plugin containment level
+  become: true
+  ansible.builtin.command:
+    cmd: snap set certbot trust-plugin-with-root=ok
+  when: plugin_containment_level.rc == 1 or plugin_containment_level.stdout != "ok"
+
+- name: Install plugin
+  become: true
+  community.general.snap:
+    name: certbot-dns-{{ certbot_dns_plugin }}
+
+- name: Create credentials file
+  become: true
+  ansible.builtin.template:
+    src: "{{ certbot_dns_plugin }}.cred.j2"
+    dest: "/root/{{ certbot_dns_plugin }}.cred"
+    mode: 0600
+    owner: "root"
+
+- name: Request initial certificate
+  become: true
+  ansible.builtin.command:
+    cmd: "certbot certonly \
+      --dns-{{ certbot_dns_plugin }} \
+      --dns-{{ certbot_dns_plugin }}-credentials /root/{{ certbot_dns_plugin }}.cred \
+      -d {{ item }}"
+  args:
+    creates: /etc/letsencrypt/live/{{ item | replace("*.", "") }}/cert.pem
+  with_items: "{{ certbot_domains }}"

@@ -1,0 +1,159 @@
+# {{ ansible_managed }}
+
+user www-data;
+worker_processes auto;
+pid /run/nginx.pid;
+include /etc/nginx/modules-enabled/*.conf;
+
+events {
+	worker_connections 768;
+	# multi_accept on;
+}
+
+http {
+
+	##
+	# Basic Settings
+	##
+
+	sendfile on;
+	tcp_nopush on;
+	tcp_nodelay on;
+	keepalive_timeout 65;
+	types_hash_max_size 2048;
+	server_tokens off;
+
+	# server_names_hash_bucket_size 64;
+	# server_name_in_redirect off;
+
+	include /etc/nginx/mime.types;
+	default_type application/octet-stream;
+
+	##
+	# SSL Settings
+	##
+
+	ssl_session_timeout 1d;
+	ssl_session_cache shared:SSL:10m;  # about 40000 sessions
+	ssl_session_tickets off;
+
+	ssl_dhparam /etc/nginx/certs/dhparam;
+
+	ssl_protocols {{ nginx_ssl_protocols | join(" ") }} ;
+	ssl_ciphers {{ nginx_ssl_ciphers | join(":") }};
+	ssl_prefer_server_ciphers {% if nginx_prefer_server_ciphers %} on {% else %} off {% endif %};
+
+	{% if nginx_hsts %}
+	add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;
+	{% endif %}
+
+	{% if nginx_ocsp_stapling %}
+	# OCSP stapling
+	ssl_stapling on;
+	ssl_stapling_verify on;
+	{% endif %}
+
+	##
+	# Logging Settings
+	##
+	log_format default 	'$remote_addr - $remote_user [$time_local] '
+						'"$request" $status $body_bytes_sent '
+						'"$http_referer" "$http_user_agent" '
+						'"$proxy_host" "$upstream_addr" "$uri" "$query_string"';	
+
+	log_format json_syslog escape=json
+		'{'
+			# Metadata
+			'"timestamp": "$time_iso8601", '
+			'"pid": $pid, '
+			'"remote_addr": "$remote_addr", '
+			'"remote_user": "$remote_user", '
+			'"connection": "$connection", '
+			'"pipe": "$pipe", '
+			'"connection_requests": $connection_requests, '
+
+			# Request
+        	'"request": "$request", '
+        	'"request_length": $request_length, '
+        	'"request_method":"$request_method", '
+        	'"request_time": $request_time, '
+			'"request_uri": "$request_uri", '
+			'"scheme": "$scheme", '
+			'"host": "$host",'
+			'"uri": "$uri",'
+			'"query_string": "$query_string", '
+			'"content_type": "$content_type", '
+
+			# Request headers
+			'"http_user_agent": "$http_user_agent", '
+			'"http_x_forwarded_for":"$http_x_forwarded_for", '
+			'"http_x_forwarded_proto":"$http_x_forwarded_proto", '
+			'"http_x_forwarded_host":"$http_x_forwarded_host", '
+			'"http_referrer": "$http_referer", '
+			'"http_connection": "$http_connection", '
+			'"http_upgrade": "$http_upgrade", '
+
+			# Server
+			'"proxy_host": "$proxy_host", '
+			'"server_name": "$server_name", '
+			'"server_port": "$server_port", '
+			'"server_protocol": "$server_protocol", '
+			'"upstream_addr": "$upstream_addr", '
+			'"upstream_response_time": $upstream_response_time, '
+			'"upstream_status": "$upstream_status", '
+			
+			# Response
+        	'"status": $status, '
+			'"bytes_sent": $bytes_sent, '
+			'"body_bytes_sent": $body_bytes_sent'
+		'}';
+
+	access_log /var/log/nginx/access.log;
+	error_log /var/log/nginx/error.log warn;
+
+	{% if nginx_syslog_target %}
+	access_log syslog:server={{ nginx_syslog_target["host"] }}:{{ nginx_syslog_target["port"] }},facility=local0,tag={{ nginx_syslog_target["tag"] | default("nginx") }} json_syslog;
+	error_log syslog:server={{ nginx_syslog_target["host"] }}:{{ nginx_syslog_target["port"] }},facility=local0,tag={{ nginx_syslog_target["tag"] | default("nginx") }} warn;
+	{% endif %}
+
+	##
+	# Gzip Settings
+	##
+
+	gzip on;
+
+	# gzip_vary on;
+	# gzip_proxied any;
+	# gzip_comp_level 6;
+	# gzip_buffers 16 8k;
+	# gzip_http_version 1.1;
+	# gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
+
+	##
+	# Virtual Host Configs
+	##
+
+	include /etc/nginx/conf.d/*.conf;
+}
+
+
+# mail {
+# 	# See sample authentication script at:
+# 	# http://wiki.nginx.org/ImapAuthenticateWithApachePhpScript
+#
+# 	# auth_http localhost/auth.php;
+# 	# pop3_capabilities "TOP" "USER";
+# 	# imap_capabilities "IMAP4rev1" "UIDPLUS";
+#
+# 	server {
+# 		listen		localhost:110;
+# 		protocol	pop3;
+# 		proxy		on;
+# 	}
+#
+# 	server {
+# 		listen		localhost:143;
+# 		protocol	imap;
+# 		proxy		on;
+# 	}
+# }

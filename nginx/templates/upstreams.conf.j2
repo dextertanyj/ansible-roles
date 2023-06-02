@@ -1,0 +1,8 @@
+# {{ ansible_managed }}
+
+{% for item in nginx_upstreams %}
+upstream {{ item.name }} {
+    server {{ item.host }}:{{ item.port }};
+    {{ nginx_additional_common_upstream_options }};
+}
+{% endfor %}

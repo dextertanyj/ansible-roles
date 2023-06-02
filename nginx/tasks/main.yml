@@ -1,0 +1,91 @@
+- name: Install NGINX and OpenSSL
+  become: true
+  ansible.builtin.apt:
+    update_cache: true
+    name:
+      - nginx
+      - openssl
+    state: present
+
+- name: Remove default configuration
+  become: true
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+
+- name: Create certificate folder
+  become: true
+  ansible.builtin.file:
+    path: /etc/nginx/certs
+    state: directory
+    mode: 0750
+    owner: root
+
+- name: Generate dhparams file
+  become: true
+  ansible.builtin.command:
+    cmd: openssl dhparam -out /etc/nginx/certs/dhparam 2048
+  args:
+    creates: /etc/nginx/certs/dhparam
+
+- name: Copy nginx options
+  become: true
+  ansible.builtin.template:
+    src: nginx.conf.j2
+    dest: /etc/nginx/nginx.conf
+    mode: 0644
+    owner: root
+  notify:
+    - Reload nginx
+
+- name: Create folder for common options
+  become: true
+  ansible.builtin.file:
+    name: /etc/nginx/conf.d/options
+    state: directory
+    mode: 0755
+    owner: root
+  notify:
+    - Reload nginx
+
+- name: Copy common proxy options
+  become: true
+  ansible.builtin.template:
+    src: proxy-options.conf.j2
+    dest: /etc/nginx/conf.d/options/proxy-options.conf
+    mode: 0644
+    owner: root
+  notify:
+    - Reload nginx
+
+- name: Configure upstreams
+  become: true
+  ansible.builtin.template:
+    src: upstreams.conf.j2
+    dest: /etc/nginx/conf.d/upstreams.conf
+    mode: 0644
+    owner: root
+  notify:
+    - Reload nginx
+
+- name: Configure sites
+  become: true
+  ansible.builtin.template:
+    src: sites.conf.j2
+    dest: /etc/nginx/conf.d/sites.conf
+    mode: 0644
+    owner: root
+  notify:
+    - Reload nginx
+
+- name: Configure firewall
+  ansible.builtin.include_role:
+    name: firewall
+    tasks_from: install_rules.yml
+  vars:
+    firewall_rules: "{{
+        nginx_upstreams
+        | map('rename_keys', ([['host', 'destination'], ['port', 'destination_ports']]))
+        | map('combine', {'chain': 'OUTPUT', 'protocol': ['TCP', 'UDP'], 'comment': 'Upstream connections'})
+        + [{'chain': 'INPUT', 'protocol': ['TCP', 'UDP'], 'destination_ports': [80, 443], 'comment': 'HTTP(S) connections'}]
+      }}"

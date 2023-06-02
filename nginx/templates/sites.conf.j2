@@ -1,0 +1,62 @@
+# {{ ansible_managed }}
+
+ssl_certificate {{ nginx_default_certificate | mandatory }};
+ssl_certificate_key {{ nginx_default_private_key | mandatory }};
+
+server {
+	listen 80 default_server;
+	listen [::]:80 default_server;
+	server_name _;
+
+	return 301 https://$host$request_uri;
+}
+
+server {
+	listen 443 ssl http2 default_server;
+	listen [::]:443 ssl http2 default_server; 
+	server_name _;
+
+	location / {
+		return 404;
+	}
+}
+
+{% for item in nginx_servers %}
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name {% for name in item.names %} {{ name }}{% endfor %};
+
+    {% if "options" in item %}
+    {% for option in item["options"] %}
+        {{ option }};
+    {% endfor %}
+    {% endif %}
+
+    {% for location in item.locations %}
+    location {{ location.name }} {
+        {% if "return" in location %}
+        return {% if "code" in location["return"] %} {{ location["return"]["code"] }} {% endif %} {{ location["return"]["value"] }};
+        {% endif %}
+        {% if "proxy" in location %}
+        proxy_pass {{location["proxy"]["scheme"]}}://{{ location["proxy"]["target"] }};
+
+        include /etc/nginx/conf.d/options/proxy-options.conf;
+        
+        {% if "verify" in location["proxy"] and location["proxy"]["verify"] %}
+            proxy_ssl_verify on;
+            proxy_ssl_session_reuse on;
+            proxy_ssl_trusted_certificate {{ location["proxy"]["verify"]["certificate"] | default(nginx_ca_certificate) }};
+        {% endif %}
+
+        {% if "options" in location["proxy"] %}
+        {% for option in location["proxy"]["options"] %}
+            {{ option }};
+        {% endfor %}
+        {% endif %}
+        {% endif %}
+    }
+    {% endfor %}
+}
+
+{% endfor %}

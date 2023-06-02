@@ -1,0 +1,19 @@
+- name: Reset policy
+  become: true
+  ansible.builtin.iptables:
+    chain: "{{ item }}"
+    policy: ACCEPT
+  loop:
+    - FORWARD
+    - INPUT
+    - OUTPUT
+
+- name: Flush existing rules
+  become: true
+  ansible.builtin.iptables:
+    chain: "{{ item }}"
+    flush: true
+  loop:
+    - FORWARD
+    - INPUT
+    - OUTPUT

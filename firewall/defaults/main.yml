@@ -1,0 +1,47 @@
+firewall_policies:
+  - chain: input
+    policy: DROP
+  - chain: output
+    policy: DROP
+  - chain: forward
+    policy: DROP
+
+firewall_rules:
+  - chain: INPUT
+    input_interface: lo
+    comment: Loopback interface
+  - chain: OUTPUT
+    output_interface: lo
+    comment: Loopback interface
+  - chain: INPUT
+    connection_state:
+      - ESTABLISHED
+      - RELATED
+    comment: Related and established connections
+  - chain: OUTPUT
+    connection_state:
+      - ESTABLISHED
+      - RELATED
+    comment: Related and established connections
+  - chain: INPUT
+    protocol: TCP
+    source: "{{ subnet.local }}"
+    destination_ports: 22
+    comment: SSH connections
+  - chain: OUTPUT
+    protocol: TCP
+    destination_ports: 22
+    comment: SSH connections
+  - chain: OUTPUT
+    protocol: UDP
+    source_ports: 68
+    destination: "{{ subnet.core }}"
+    destination_ports: 67
+    comment: DHCP connections
+  - chain: OUTPUT
+    protocol:
+      - UDP
+      - TCP
+    destination: "{{ subnet.core }}"
+    destination_ports: 53
+    comment: DNS connections

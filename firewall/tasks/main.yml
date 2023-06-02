@@ -1,0 +1,18 @@
+- name: Install persistent iptables
+  become: true
+  ansible.builtin.apt:
+    name: iptables-persistent
+
+- name: Reset rules
+  ansible.builtin.import_tasks:
+    file: "reset.yml"
+  when: reset is defined and reset
+  notify: Restart docker
+
+- name: Install rules
+  ansible.builtin.import_tasks:
+    file: install_rules.yml
+
+- name: Set policies
+  ansible.builtin.import_tasks:
+    file: set_policies.yml

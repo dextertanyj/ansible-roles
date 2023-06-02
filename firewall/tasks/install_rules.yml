@@ -1,0 +1,23 @@
+- name: Install rules
+  become: true
+  ansible.builtin.iptables:
+    action: append
+    table: "{{ item.table | default('filter') | lower }}"
+    chain: "{{ item.chain | upper }}"
+    jump: "{{ item.action | default(\"ACCEPT\") | upper }}"
+    protocol: "{{ item.protocol | default(\"all\") | lower }}"
+    ctstate: "{{ item.connection_state | default(omit) }}"
+    source: "{{ hostvars[item.source]['ansible_default_ipv4']['address']
+        if ('source' in item and item.source in hostvars and \"ansible_default_ipv4\" in hostvars[item.source]) else
+        (item.source | default(omit)) }}"
+    source_port: "{{ item.source_ports | default(omit) }}"
+    destination: "{{ hostvars[item.destination]['ansible_default_ipv4']['address']
+        if ('destination' in item and item.destination in hostvars and \"ansible_default_ipv4\" in hostvars[item.destination]) else
+        (item.destination | default(omit)) }}"
+    destination_port: "{{ item.destination_ports | default(omit) }}"
+    in_interface: "{{ item.input_interface | default(omit) }}"
+    out_interface: "{{ item.output_interface | default(omit) }}"
+    comment: "{{ item.comment | default(omit) }}"
+  loop: "{{ firewall_rules | flatten_rules(['source', 'destination', 'protocol', 'source_ports', 'destination_ports']) }}"
+  notify:
+    - Save iptables

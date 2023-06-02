@@ -1,0 +1,11 @@
+- name: Restart docker
+  become: true
+  ansible.builtin.service:
+    name: docker
+    state: restarted
+  when: inventory_hostname in groups["docker"]
+
+- name: Save iptables
+  become: true
+  ansible.builtin.command:
+    cmd: netfilter-persistent save

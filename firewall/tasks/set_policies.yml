@@ -1,0 +1,8 @@
+- name: Set policies
+  become: true
+  ansible.builtin.iptables:
+    chain: "{{ item.chain | upper }}"
+    policy: "{{ item.policy | upper }}"
+  loop: "{{ firewall_policies | default([]) }}"
+  notify:
+    - Save iptables

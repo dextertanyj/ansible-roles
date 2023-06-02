@@ -1,0 +1,38 @@
+---
+- name: Check existing installation
+  ansible.builtin.command: dpkg-query -W step-ca
+  register: installed
+  changed_when: installed.rc == 1
+  failed_when: installed.rc not in [0, 1]
+
+- name: Install step CA
+  when: installed.rc == 1
+  block:
+  - name: Set version number
+    when: step_ca_version == "latest"
+    block:
+      - name: Retrieve version number
+        ansible.builtin.uri:
+          url: https://api.github.com/repos/smallstep/certificates/releases/latest
+          body_format: json
+          return_content: true
+        register: version
+      - name: Set version number
+        ansible.builtin.set_fact:
+          step_ca_version: "{{ (version.json.tag_name)[1:] }}"
+
+  - name: Download installation file
+    ansible.builtin.get_url:
+      url: https://dl.step.sm/gh-release/certificates/gh-release-header/v{{ step_ca_version }}/step-ca_{{ step_ca_version }}_amd64.deb
+      dest: "/tmp/step-ca_{{ step_ca_version }}.deb"
+      mode: 0755
+
+  - name: Install package
+    become: true
+    ansible.builtin.apt:
+      deb: "/tmp/step-ca_{{ step_ca_version }}.deb"
+
+  - name: Remove installation file
+    ansible.builtin.file:
+      path: "/tmp/step-ca_{{ step_ca_version }}.deb"
+      state: absent

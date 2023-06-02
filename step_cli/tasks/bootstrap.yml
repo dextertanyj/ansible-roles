@@ -1,0 +1,12 @@
+---
+- name: Initialise configuration
+  become: true
+  become_user: "{{ step_user }}"
+  ansible.builtin.command:
+    cmd: |
+      step ca bootstrap
+      --ca-url={{ step_ca_host }}:{{ step_ca_port }}
+      --fingerprint={{ step_ca_fingerprint }}
+      {% if step_install_cert is defined %} --install {% endif %}
+  args:
+    creates: "{{ step_path }}/config/defaults.json"

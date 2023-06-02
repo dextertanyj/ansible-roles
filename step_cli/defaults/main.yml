@@ -1,0 +1,4 @@
+step_cli_version: latest
+
+step_user: step
+step_path: /etc/step

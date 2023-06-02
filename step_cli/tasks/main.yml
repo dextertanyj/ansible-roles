@@ -1,0 +1,18 @@
+---
+- name: Install step CLI
+  ansible.builtin.import_tasks:
+    file: install.yml
+- name: Configure firewall
+  ansible.builtin.include_role:
+    name: firewall
+    tasks_from: install_rules
+  vars:
+    firewall_rules:
+      - chain: OUTPUT
+        protocol: TCP
+        destination: "{{ step_ca_host }}"
+        destination_ports: "{{ step_ca_port }}"
+        comment: CA connection
+- name: Bootstrap CA
+  ansible.builtin.import_tasks:
+    file: bootstrap.yml

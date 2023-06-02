@@ -1,0 +1,29 @@
+---
+- name: Install step CLI
+  ansible.builtin.import_role:
+    name: step_cli
+    tasks_from: install
+- name: Install step CA
+  ansible.builtin.import_tasks:
+    file: install.yml
+- name: Initialise step CA
+  ansible.builtin.import_tasks:
+    file: init.yml
+- name: Install templates
+  ansible.builtin.copy:
+    src: "{{ lookup('file', item.path) }}"
+    dest: "{{ step_path }}/templates/{{ item.type }}/{{ item.path | basename }}"
+    mode: 0644
+    owner: "{{ step_user }}"
+  loop: "{{ step_ca_templates }}"
+- name: Configure firewall
+  ansible.builtin.include_role:
+    name: firewall
+    tasks_from: install_rules
+  vars:
+    firewall_rules:
+      - chain: INPUT
+        protocol: TCP
+        source: "{{ subnet.local }}"
+        destination_ports: "{{ step_ca_port }}"
+        comment: CA connection

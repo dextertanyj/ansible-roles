@@ -1,0 +1,60 @@
+---
+- name: Create step user
+  become: true
+  ansible.builtin.user:
+    name: "{{ step_user }}"
+    password: "*"
+    system: true
+    shell: /usr/sbin/nologin
+
+- name: Check existing installation
+  ansible.builtin.command: dpkg-query -W step-cli
+  register: installed
+  changed_when: installed.rc == 1
+  failed_when: installed.rc not in [0, 1]
+
+- name: Install step CLI
+  when: installed.rc == 1
+  block:
+    - name: Set version number
+      when: step_cli_version == "latest"
+      block:
+        - name: Retrieve version number
+          ansible.builtin.uri:
+            url: https://api.github.com/repos/smallstep/cli/releases/latest
+            body_format: json
+            return_content: true
+          register: version
+        - name: Set version number
+          ansible.builtin.set_fact:
+            step_cli_version: "{{ (version.json.tag_name)[1:] }}"
+    - name: Download installation file
+      ansible.builtin.get_url:
+        url: https://dl.step.sm/gh-release/cli/gh-release-header/v{{ step_cli_version }}/step-cli_{{ step_cli_version }}_amd64.deb
+        dest: "/tmp/step-cli_{{ step_cli_version }}.deb"
+        mode: 0755
+    - name: Install package
+      become: true
+      ansible.builtin.apt:
+        deb: "/tmp/step-cli_{{ step_cli_version }}.deb"
+    - name: Remove installation file
+      ansible.builtin.file:
+        path: "/tmp/step-cli_{{ step_cli_version }}.deb"
+        state: absent
+
+- name: Create step folder
+  become: true
+  ansible.builtin.file:
+    name: "{{ step_path }}"
+    state: directory
+    mode: 0775
+    owner: "{{ step_user }}"
+    group: "{{ step_user }}"
+
+- name: Set step home environment variables
+  become: true
+  ansible.builtin.lineinfile:
+    name: /etc/environment
+    regex: ^STEPPATH
+    line: "STEPPATH={{ step_path }}"
+    state: present

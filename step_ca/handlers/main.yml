@@ -1,0 +1,13 @@
+- name: Install step-ca service
+  become: true
+  ansible.builtin.systemd:
+    daemon_reload: true
+    name: step-ca
+    enabled: true
+    state: started
+
+- name: Remove default provisioner
+  become: true
+  ansible.builtin.command:
+    cmd: "step ca provisioner remove {{ step_ca_default_provisioner }}"
+  when: not step_ca_keep_default_provisioner

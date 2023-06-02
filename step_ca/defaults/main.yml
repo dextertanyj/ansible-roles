@@ -1,0 +1,12 @@
+step_ca_version: latest
+
+step_ca_root_password_file: /home/step/root_ca.cred
+step_ca_intermediate_password_file: /home/step/intermediate_ca.cred
+
+step_ca_dns: "{{ ansible_fqdn }}"
+step_ca_port: 443
+step_ca_address: "0.0.0.0:{{ step_ca_port }}"
+step_ca_keep_default_provisioner: false
+step_ca_default_provisioner: default@example.com
+
+step_ca_templates: []

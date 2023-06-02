@@ -1,0 +1,74 @@
+---
+- name: Configure intermediate CA password file
+  become: true
+  ansible.builtin.copy:
+    content: "{{ step_ca_intermediate_password }}"
+    dest: "{{ step_ca_intermediate_password_file }}"
+    mode: 0600
+    owner: "{{ step_user }}"
+    group: "{{ step_user }}"
+
+- name: Verify existing CA
+  become: true
+  ansible.builtin.stat:
+    name: "{{ step_path }}/config/ca.json"
+  register: initialized
+
+- name: Initialise CA
+  when: not initialized.stat.exists
+  become: true
+  become_user: "{{ step_user }}"
+  block:
+    - name: Configure root CA password file
+      ansible.builtin.copy:
+        content: "{{ step_ca_root_password }}"
+        dest: "{{ step_ca_root_password_file }}"
+        mode: 0600
+        owner: "{{ step_user }}"
+        group: "{{ step_user }}"
+    - name: Initialise CA
+      ansible.builtin.command:
+        cmd: |
+          step ca init
+          --name={{ step_ca_name | quote }}
+          --dns={{ step_ca_dns | quote }}
+          --address={{ step_ca_address | quote }}
+          --provisioner={{ step_ca_default_provisioner | quote }}
+          --password-file={{ step_ca_root_password_file | quote }}
+          --provisioner-password-file={{ step_ca_root_password_file | quote }}
+          {% if step_ca_url is defined %} --with-ca-url={{ step_ca_url | quote }} {% endif %}
+          {% if step_ca_ssh is defined and step_ca_ssh %} --ssh {% endif %}
+      args:
+        creates: "{{ step_path }}/config/ca.json"
+    - name: Change intermediate certificate password  # noqa no-changed-when
+      ansible.builtin.command:
+        cmd: |
+          step crypto change-pass {{ step_path }}/secrets/intermediate_ca_key -f
+          --password-file={{ step_ca_root_password_file | quote }}
+          --new-password-file={{ step_ca_intermediate_password_file | quote }}
+      notify:
+        - Remove default provisioner
+  always:
+    - name: Remove root password file
+      ansible.builtin.file:
+        path: "{{ step_ca_root_password_file }}"
+        state: absent
+
+- name: Install CA service
+  become: true
+  ansible.builtin.template:
+    src: step-ca.service.j2
+    dest: /etc/systemd/system/step-ca.service
+    mode: 0644
+    owner: "{{ step_user }}"
+  notify:
+    - Install step-ca service
+
+- name: Flush handlers
+  ansible.builtin.meta: flush_handlers
+
+- name: Reload step-ca service
+  become: true
+  ansible.builtin.systemd:
+    name: step-ca
+    state: reloaded

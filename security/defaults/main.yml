@@ -1,0 +1,11 @@
+---
+security_install_guard: false
+security_ssh_port: 22
+security_ssh_loglevel: INFO
+security_ssh_root_login: "no"
+security_ssh_public_key_authentication: "yes"
+security_ssh_allow_forwarding: "yes"
+security_ssh_allowed_users: ["*"]
+security_ssh_retry_limit: 5
+security_ssh_attempt_window: 30m
+security_ssh_ban_time: 14400m

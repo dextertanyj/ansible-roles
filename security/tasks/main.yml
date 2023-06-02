@@ -1,0 +1,13 @@
+---
+- name: Configure SSH
+  ansible.builtin.import_tasks:
+    file: ssh.yml
+
+- name: Update known hosts
+  ansible.builtin.import_tasks:
+    file: hosts.yml
+
+- name: Install SSH guard
+  ansible.builtin.import_tasks:
+    file: guard.yml
+  when: security_install_guard

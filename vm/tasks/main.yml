@@ -1,0 +1,5 @@
+- name: Install QEMU guest agent (apt)
+  ansible.builtin.apt:
+    update_cache: true
+    name: qemu-guest-agent
+    state: present

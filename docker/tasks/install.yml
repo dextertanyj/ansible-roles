@@ -1,0 +1,52 @@
+---
+- name: Remove conflicting system packages
+  become: true
+  ansible.builtin.apt:
+    update_cache: true
+    name:
+      - docker.io
+      - docker-doc
+      - docker-compose
+      - podman-docker
+      - containerd
+      - runc
+      - docker-desktop
+    state: absent
+
+- name: Install required system packages
+  become: true
+  ansible.builtin.apt:
+    update_cache: true
+    name:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - software-properties-common
+    state: present
+
+- name: Add Docker GPG apt key
+  become: true
+  ansible.builtin.get_url:
+    url: https://download.docker.com/linux/{{ ansible_distribution | lower }}/gpg
+    dest: /etc/apt/trusted.gpg.d/docker.asc
+    mode: 0644
+    force: true
+
+- name: Add Docker repository
+  become: true
+  ansible.builtin.apt_repository:
+    repo: "deb [arch=amd64 signed-by=/etc/apt/trusted.gpg.d/docker.asc] \
+      https://download.docker.com/linux/{{ ansible_distribution | lower }} {{ ansible_distribution_release }} stable"
+    filename: docker
+    state: present
+
+- name: Install docker packages
+  become: true
+  ansible.builtin.apt:
+    update_cache: true
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-compose-plugin
+    state: present

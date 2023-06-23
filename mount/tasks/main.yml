@@ -1,0 +1,63 @@
+- name: Install cifs-utils
+  become: true
+  ansible.builtin.apt:
+    update_cache: true
+    name: cifs-utils
+    state: present
+
+- name: Create mount directory
+  become: true
+  ansible.builtin.file:
+    path: "{{ item.location }}"
+    state: directory
+    owner: root
+    mode: 0755
+  with_items: "{{ mount_folders }}"
+
+- name: Create credential file
+  become: true
+  ansible.builtin.template:
+    src: credentials.cred.j2
+    dest: /root/{{ item.volume }}.cred
+    mode: 0640
+    owner: root
+  with_items: "{{ mount_folders }}"
+
+- name: Install CIFS client firewall rules
+  ansible.builtin.include_role:
+    name: firewall
+    tasks_from: install_rules
+  vars:
+    firewall_rules:
+      - chain: OUTPUT
+        protocol: TCP
+        destination: "{{ subnet.local }}"
+        destination_ports:
+          - 139
+          - 445
+        comment: CIFS connections
+      - chain: OUTPUT
+        protocol: UDP
+        destination: "{{ subnet.local }}"
+        destination_ports:
+          - 137
+          - 138
+        comment: CIFS connections
+
+- name: Configure mount
+  become: true
+  ansible.posix.mount:
+    path: "{{ item.location }}"
+    state: mounted
+    src: "//{{ item.host }}/{{ item.volume }}"
+    fstype: cifs
+    opts: "uid=0,credentials=/root/{{ item.volume }}.cred,iocharset=utf8,vers=3.0,\
+      file_mode={{ \"0700\" if item.modify and item.restricted else
+                   \"0500\" if not item.modify and item.restricted else
+                   \"0777\" if item.modify and not item.restricted else
+                   \"0555\" }},\
+      dir_mode={{ \"0700\" if item.modify and item.restricted else
+                  \"0500\" if not item.modify and item.restricted else
+                  \"0777\" if item.modify and not item.restricted else
+                  \"0555\" }}"
+  with_items: "{{ mount_folders }}"

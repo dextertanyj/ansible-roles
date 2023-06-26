@@ -111,10 +111,8 @@ http {
 	access_log /var/log/nginx/access.log;
 	error_log /var/log/nginx/error.log warn;
 
-	{% if nginx_syslog_target %}
-	access_log syslog:server={{ nginx_syslog_target["host"] }}:{{ nginx_syslog_target["port"] }},facility=local0,tag={{ nginx_syslog_target["tag"] | default("nginx") }} json_syslog;
-	error_log syslog:server={{ nginx_syslog_target["host"] }}:{{ nginx_syslog_target["port"] }},facility=local0,tag={{ nginx_syslog_target["tag"] | default("nginx") }} warn;
-	{% endif %}
+	access_log syslog:server=unix:/dev/log,facility=local7,tag="nginx",severity=info,nohostname json_syslog;
+	error_log syslog:server=unix:/dev/log,facility=local7,tag="nginx",nohostname warn;
 
 	##
 	# Gzip Settings

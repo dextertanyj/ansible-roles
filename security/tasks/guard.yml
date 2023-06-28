@@ -12,6 +12,8 @@
     dest: /etc/fail2ban/fail2ban.conf
     mode: 0600
     owner: root
+  notify:
+    - Reload fail2ban
 
 - name: Configure SSH ban settings
   become: true
@@ -20,3 +22,12 @@
     dest: /etc/fail2ban/jail.d/sshd.conf
     mode: 0644
     owner: root
+  notify:
+    - Reload fail2ban
+
+- name: Enable fail2ban
+  become: true
+  ansible.builtin.service:
+    name: fail2ban
+    state: started
+    enabled: true

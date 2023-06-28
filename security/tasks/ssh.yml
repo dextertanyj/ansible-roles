@@ -8,3 +8,11 @@
     owner: root
   notify:
     - Restart ssh
+
+- name: Remove cloud-init settings
+  become: true
+  ansible.builtin.file:
+    path: /etc/ssh/sshd_config.d/50-cloud-init.conf
+    state: absent
+  notify:
+    - Restart ssh

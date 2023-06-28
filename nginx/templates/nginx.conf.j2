@@ -73,10 +73,10 @@ http {
 			'"connection_requests": $connection_requests, '
 
 			# Request
-        	'"request": "$request", '
-        	'"request_length": $request_length, '
-        	'"request_method":"$request_method", '
-        	'"request_time": $request_time, '
+			'"request": "$request", '
+			'"request_length": $request_length, '
+			'"request_method":"$request_method", '
+			'"request_time": $request_time, '
 			'"request_uri": "$request_uri", '
 			'"scheme": "$scheme", '
 			'"host": "$host",'
@@ -111,8 +111,8 @@ http {
 	access_log /var/log/nginx/access.log;
 	error_log /var/log/nginx/error.log warn;
 
-	access_log syslog:server=unix:/dev/log,facility=local7,tag="nginx",severity=info,nohostname json_syslog;
-	error_log syslog:server=unix:/dev/log,facility=local7,tag="nginx",nohostname warn;
+	access_log syslog:server=unix:/dev/log,facility=local7,tag=nginx,severity=info,nohostname json_syslog;
+	error_log syslog:server=unix:/dev/log,facility=local7,tag=nginx,nohostname warn;
 
 	##
 	# Gzip Settings

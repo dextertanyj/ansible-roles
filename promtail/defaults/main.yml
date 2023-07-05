@@ -1,0 +1,14 @@
+promtail_enable_server: true
+promtail_server_port: 9080
+
+promtail_client_address: localhost
+promtail_client_port: 3100
+promtail_client_url: "http://{{ promtail_client_address }}:{{ promtail_client_port }}/loki/api/v1/push"
+
+promtail_version: latest
+promtail_installation_folder: /usr/local/bin
+promtail_configuration_folder: /etc/promtail
+promtail_positions_folder: /tmp
+
+promtail_enable_syslog_server: false
+promtail_syslog_server_port: 1514

@@ -1,0 +1,54 @@
+---
+- name: Install required packages
+  become: true
+  ansible.builtin.apt:
+    update_cache: true
+    name:
+      - unzip
+    state: present
+
+- name: Install promtail
+  ansible.builtin.include_tasks:
+    file: install.yml
+
+- name: Configure promtail
+  ansible.builtin.include_tasks:
+    file: configure.yml
+
+- name: Configure firewall
+  ansible.builtin.include_role:
+    name: firewall
+    tasks_from: install_rules
+  vars:
+    firewall_rules:
+      - chain: OUTPUT
+        protocol: TCP
+        destination: "{{ promtail_client_address }}"
+        destination_ports: "{{ promtail_client_port }}"
+        comment: Promtail client connections
+
+- name: Configure firewall for promtail syslog server
+  ansible.builtin.include_role:
+    name: firewall
+    tasks_from: install_rules
+  vars:
+    firewall_rules:
+      - chain: INPUT
+        protocol: TCP
+        source: "{{ promtail_syslog_server_whitelisted_clients | default(omit) }}"
+        destination_ports: "{{ promtail_syslog_server_port }}"
+        comment: Promtail syslog server connections
+  when: promtail_enable_syslog_server
+
+- name: Configure firewall for Promtail server
+  ansible.builtin.include_role:
+    name: firewall
+    tasks_from: install_rules
+  vars:
+    firewall_rules:
+      - chain: INPUT
+        protocol: TCP
+        source: "{{ promtail_server_whitelisted_clients | default(omit) }}"
+        destination_ports: "{{ promtail_server_port }}"
+        comment: Promtail server connections
+  when: promtail_enable_server

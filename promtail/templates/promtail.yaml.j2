@@ -1,0 +1,79 @@
+# {{ ansible_managed }}
+
+{% if promtail_enable_server %}
+server:
+  http_listen_port: {{ promtail_server_port }}
+{% endif %}
+
+positions:
+  filename: {{ promtail_positions_folder }}/positions.yaml
+
+clients:
+  - url: {{ promtail_client_url }}
+
+scrape_configs:
+  - job_name: journal
+    journal:
+      max_age: 12h
+      labels:
+        job: system-journal
+    relabel_configs:
+      - source_labels: ['__journal__systemd_unit']
+        target_label: unit
+      - source_labels: ['__journal__hostname']
+        target_label: host
+      - source_labels: ['__journal_priority']
+        target_label: level
+      - source_labels: ['__journal_syslog_facility']
+        target_label: syslog_facility
+      - source_labels: ['__journal_syslog_identifier']
+        target_label: syslog_identifier
+    pipeline_stages:
+      - template:
+          source: level
+{% raw %} 
+          template: "\
+            {{ if eq .Value \"0\" }}{{ Replace .Value \"0\" \"emergency\" 1 }}{{ end }}\
+            {{ if eq .Value \"1\" }}{{ Replace .Value \"1\" \"alert\" 1 }}{{ end }}\
+            {{ if eq .Value \"2\" }}{{ Replace .Value \"2\" \"critical\" 1 }}{{ end }}\
+            {{ if eq .Value \"3\" }}{{ Replace .Value \"3\" \"error\" 1 }}{{ end }}\
+            {{ if eq .Value \"4\" }}{{ Replace .Value \"4\" \"warning\" 1 }}{{ end }}\
+            {{ if eq .Value \"5\" }}{{ Replace .Value \"5\" \"notice\" 1 }}{{ end }}\
+            {{ if eq .Value \"6\" }}{{ Replace .Value \"6\" \"informational\" 1 }}{{ end }}\
+            {{ if eq .Value \"7\" }}{{ Replace .Value \"7\" \"debug\" 1 }}{{ end }}\
+            "
+{% endraw %}
+      - labels:
+          level:
+      - match:
+          selector: '{unit=~"session-.*"}'
+          action: keep
+          stages:
+            - labeldrop:
+                - unit
+            - static_labels:
+                unit: session.scope
+      - match:
+          selector: '{unit=~"user@.*"}'
+          action: keep
+          stages:
+            - labeldrop:
+                - unit
+            - static_labels:
+                unit: user.service
+{% if promtail_enable_syslog_server %}
+  - job_name: syslog
+    syslog:
+      listen_address: 0.0.0.0:{{ promtail_syslog_server_port }}
+      labels:
+        job: syslog
+    relabel_configs:
+      - source_labels: ['__syslog_message_hostname']
+        target_label: host
+      - source_labels: ['__syslog_message_severity']
+        target_label: level
+      - source_labels: ['__syslog_message_facility']
+        target_label: syslog_facility
+      - source_labels: ['__syslog_message_app_name']
+        target_label: syslog_identifier
+{% endif %}

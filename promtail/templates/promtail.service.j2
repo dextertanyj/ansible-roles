@@ -1,0 +1,39 @@
+# {{ ansible_managed }}
+
+[Unit]
+Description=Promtail
+After=network-online.target
+Requires=local-fs.target
+After=local-fs.target
+
+[Service]
+Type=simple
+User=promtail
+Group=promtail
+ExecReload=/bin/kill -HUP $MAINPID
+ExecStart={{ promtail_installation_folder }}/promtail \
+  --config.file={{ promtail_configuration_folder }}/promtail.yaml
+
+LimitNOFILE=65000
+LockPersonality=true
+NoNewPrivileges=true
+MemoryDenyWriteExecute=true
+PrivateDevices=true
+PrivateTmp=true
+ProtectHome=true
+RemoveIPC=true
+RestrictSUIDSGID=true
+
+ReadWritePaths={{ promtail_positions_folder }}
+
+PrivateUsers=true
+ProtectControlGroups=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+ProtectSystem=strict
+
+SyslogIdentifier=promtail
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

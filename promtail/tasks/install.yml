@@ -1,0 +1,82 @@
+---
+- name: Create promtail group
+  become: true
+  ansible.builtin.group:
+    name: promtail
+    system: true
+    state: present
+
+- name: Create promtail user
+  become: true
+  ansible.builtin.user:
+    name: promtail
+    system: true
+    createhome: false
+    shell: /usr/sbin/nologin
+    groups:
+      - promtail
+      - adm
+    state: present
+
+- name: Check existing installation
+  ansible.builtin.command: promtail --version
+  register: installed
+  changed_when: false
+  failed_when: installed.rc not in [0, 2]
+    
+- name: Set version number
+  block:
+    - name: Retrieve version number
+      ansible.builtin.uri:
+        url: https://api.github.com/repos/grafana/loki/releases/latest
+        body_format: json
+        return_content: true
+      register: version
+    - name: Set version number
+      ansible.builtin.set_fact:
+        promtail_version: "{{ (version.json.tag_name)[1:] }}"
+  when: promtail_version == "latest"
+
+- name: Install/Update promtail
+  when: installed.rc != 0 or not installed.stdout is search(promtail_version)
+  block:
+    - name: Download promtail binary
+      ansible.builtin.get_url:
+        url: "https://github.com/grafana/loki/releases/download/v{{ promtail_version }}/promtail-linux-amd64.zip"
+        dest: "/tmp/promtail-linux-amd64-{{ promtail_version }}.zip"
+        force: true
+        mode: 0644
+    - name: Unpack promtail binary
+      ansible.builtin.unarchive:
+        src: "/tmp/promtail-linux-amd64-{{ promtail_version }}.zip"
+        remote_src: true
+        dest: /tmp
+    - name: Copy promtail binary
+      become: true
+      ansible.builtin.copy:
+        src: /tmp/promtail-linux-amd64
+        remote_src: true
+        dest: "{{ promtail_installation_folder }}/promtail"
+        mode: 0755
+        owner: root
+        group: root
+      notify:
+        - Restart promtail
+
+- name: Install promtail service
+  become: true
+  ansible.builtin.template:
+    src: promtail.service.j2
+    dest: "/etc/systemd/system/promtail.service"
+    owner: root
+    group: root
+    mode: 0644
+  notify:
+    - Restart promtail
+
+- name: Enable promtail service
+  become: true
+  ansible.builtin.service:
+    name: promtail
+    enabled: true
+    state: started

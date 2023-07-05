@@ -1,0 +1,11 @@
+- name: Restart promtail
+  become: true
+  ansible.builtin.service:
+    name: promtail
+    state: restarted
+
+- name: Reload promtail
+  become: true
+  ansible.builtin.service:
+    name: promtail
+    state: reloaded

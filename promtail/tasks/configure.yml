@@ -1,0 +1,34 @@
+- name: Create promtail configuration directory
+  become: true
+  ansible.builtin.file:
+    path: "{{ promtail_configuration_folder }}"
+    state: directory
+    owner: root
+    group: promtail
+    mode: 0770
+
+- name: Check positions folder
+  ansible.builtin.stat:
+    path: "{{ promtail_positions_folder }}"
+  register: folder
+
+- name: Create promtail positions folder
+  become: true
+  ansible.builtin.file:
+    path: "{{ promtail_positions_folder }}"
+    state: directory
+    owner: promtail
+    group: promtail
+    mode: 0770
+  when: not folder.stat.exists
+
+- name: Configure promtail
+  become: true
+  ansible.builtin.template:
+    src: promtail.yaml.j2
+    dest: "{{ promtail_configuration_folder }}/promtail.yaml"
+    owner: promtail
+    group: promtail
+    mode: 0770
+  notify:
+    - Reload promtail

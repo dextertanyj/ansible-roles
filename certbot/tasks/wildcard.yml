@@ -18,13 +18,17 @@
   community.general.snap:
     name: certbot-dns-{{ certbot_dns_plugin }}
 
+- name: Assert credentials
+  ansible.builtin.assert:
+    that: certbot_dns_credentials is defined and certbot_dns_credentials|length > 0
+    
 - name: Create credentials file
   become: true
   ansible.builtin.template:
     src: "{{ certbot_dns_plugin }}.cred.j2"
     dest: "/root/{{ certbot_dns_plugin }}.cred"
     mode: 0600
-    owner: "root"
+    owner: root
 
 - name: Request initial certificate
   become: true

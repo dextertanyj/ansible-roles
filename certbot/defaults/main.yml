@@ -1,6 +1,16 @@
 certbot_admin_email: email@example.com
-certbot_webserver: standalone
+certbot_renewal_window: 30 days
+certbot_whitelisted_sources: ""
 
 certbot_domains: []
 
-certbot_services: []
+certbot_webserver: standalone
+certbot_webserver_options: ""
+
+certbot_reload_services: []
+
+certbot_dns_plugin: ""
+certbot_dns_credentials: ""
+
+certbot_acme_server: ""
+certbot_acme_server_ca_cert: ""

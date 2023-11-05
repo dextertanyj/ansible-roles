@@ -14,9 +14,25 @@
 
 - name: Create certificates
   ansible.builtin.include_tasks:
-    file: standard.yml
+    file: wildcard.yml
   when: certbot_dns_plugin is defined
 
 - name: Setup renewals
   ansible.builtin.include_tasks:
     file: renewal.yml
+
+- name: Configure firewall
+  ansible.builtin.include_role:
+    name: firewall
+    tasks_from: install_rules.yml
+  vars:
+    firewall_rules:
+      - chain: INPUT
+        protocol: TCP
+        source: "{{ certbot_whitelisted_sources | default(omit, true) }}"
+        destination_ports:
+          - 80
+          - 443
+        comment: Certificate renewal connections
+      - chain: OUTPUT
+        

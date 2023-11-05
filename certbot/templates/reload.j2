@@ -1,7 +1,7 @@
 #! /bin/sh
 # {{ ansible_managed }}
 
-{% for item in certbot_services %}
+{% for item in certbot_reload_services %}
 echo "reloading service {{ item }}"
 systemctl reload-or-restart {{ item }}
 {% endfor %}

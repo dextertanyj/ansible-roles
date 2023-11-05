@@ -13,7 +13,6 @@
       - certbot
     classic: true
     state: present
-  register: certbot_install
 
 - name: Link binary
   become: true
